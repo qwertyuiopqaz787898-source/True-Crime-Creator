@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Lightbulb, FileText, Image as ImageIcon, Video, Search, ChevronRight, ChevronLeft, Loader2, Play, Download, Copy, CheckCircle2, TrendingUp, ExternalLink, Skull, Fingerprint, Siren, Globe, Youtube, Users, X } from 'lucide-react';
 import Markdown from 'react-markdown';
-import { generateIdeas, generateScript, generateThumbnail, generateEditingAssets, generateSEO, generateCompetitorAnalysis, Idea, CRIME_TEMPLATES } from './services/geminiService';
+import { generateIdeas, generateScript, generateThumbnailPrompt, generateThumbnailImage, generateEditingAssets, generateSEO, generateCompetitorAnalysis, Idea, CRIME_TEMPLATES } from './services/geminiService';
 import './types';
 
 const TOP_CHANNELS = {
@@ -336,8 +336,24 @@ export default function App() {
     }
   };
 
-  const handleGenerateThumbnail = async () => {
+  const [thumbnailPrompt, setThumbnailPrompt] = useState('');
+
+  const handleGenerateThumbnailPrompt = async () => {
     if (!selectedIdea) return;
+    setLoading(true);
+    try {
+      const prompt = await generateThumbnailPrompt(selectedIdea.title, selectedIdea.summary);
+      setThumbnailPrompt(prompt);
+    } catch (error) {
+      console.error(error);
+      alert(t.errorThumbnail);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateThumbnailImage = async () => {
+    if (!thumbnailPrompt) return;
     
     if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
       const hasKey = await window.aistudio.hasSelectedApiKey();
@@ -348,7 +364,7 @@ export default function App() {
 
     setLoading(true);
     try {
-      const url = await generateThumbnail(selectedIdea.title, selectedIdea.summary);
+      const url = await generateThumbnailImage(thumbnailPrompt);
       if (url) {
         setThumbnailUrl(url);
       } else {
@@ -571,7 +587,7 @@ export default function App() {
                 whileTap={{ scale: 0.95 }}
                 onClick={() => {
                   setStep(3);
-                  if (!thumbnailUrl) handleGenerateThumbnail();
+                  if (!thumbnailPrompt) handleGenerateThumbnailPrompt();
                 }}
                 className="bg-brand-red hover:bg-red-600 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-colors shadow-[0_0_20px_rgba(230,57,70,0.3)]"
               >
@@ -597,12 +613,31 @@ export default function App() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={handleGenerateThumbnail}
+                  onClick={handleGenerateThumbnailPrompt}
                   disabled={loading}
                   className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
                   {t.regenerate}
+                </motion.button>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <textarea
+                  value={thumbnailPrompt}
+                  onChange={(e) => setThumbnailPrompt(e.target.value)}
+                  placeholder="Enter or edit thumbnail prompt in English..."
+                  className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all min-h-[100px]"
+                />
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleGenerateThumbnailImage}
+                  disabled={loading || !thumbnailPrompt}
+                  className="w-full bg-brand-red hover:bg-red-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                >
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImageIcon className="w-5 h-5" />}
+                  Generate Image
                 </motion.button>
               </div>
 

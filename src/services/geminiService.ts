@@ -116,7 +116,7 @@ Requirements:
   return response.text || "";
 }
 
-export async function generateThumbnail(ideaTitle: string, ideaSummary: string): Promise<string | null> {
+export async function generateThumbnailPrompt(ideaTitle: string, ideaSummary: string): Promise<string> {
   const promptResponse = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: `Write a highly detailed image generation prompt in English for a YouTube thumbnail about a true crime story.
@@ -125,8 +125,10 @@ Summary: ${ideaSummary}
 The prompt should describe a dark, mysterious, and cinematic scene suitable for a true crime thumbnail. No text in the image.`,
   });
 
-  const imagePrompt = promptResponse.text || "A dark and mysterious true crime scene, cinematic lighting, highly detailed.";
+  return promptResponse.text || "A dark and mysterious true crime scene, cinematic lighting, highly detailed.";
+}
 
+export async function generateThumbnailImage(imagePrompt: string): Promise<string | null> {
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3.1-flash-image-preview',
